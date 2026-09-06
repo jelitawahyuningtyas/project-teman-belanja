@@ -1,0 +1,141 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  phone         String
+  username      String         @unique
+  email         String         @unique
+  password      String
+  role          UserRole       @default(CUSTOMER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  addresses     Address[]
+  notifications Notification[]
+  orders        Order[]
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  image     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  brand       String?
+  variant     String?
+  price       Int
+  stock       Int
+  weight      String?
+  description String?
+  image       String?
+  categoryId  Int
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+  category    Category    @relation(fields: [categoryId], references: [id])
+}
+
+model Address {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  label         String
+  recipientName String
+  phone         String
+  address       String
+  isMain        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders        Order[]
+}
+
+model Order {
+  id             String        @id
+  userId         Int
+  addressId      Int
+  paymentMethod  PaymentMethod
+  paymentStatus  PaymentStatus @default(PENDING)
+  orderStatus    OrderStatus   @default(DIKEMAS)
+  total          Int
+  shippingNumber String?       @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  address        Address       @relation(fields: [addressId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+  items          OrderItem[]
+  payment        Payment?
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   String
+  productId Int
+  quantity  Int
+  price     Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  orderId   String        @unique
+  method    PaymentMethod
+  status    PaymentStatus @default(PENDING)
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  order     Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  type           String
+  title          String
+  message        String
+  orderId        String?
+  shippingNumber String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum PaymentMethod {
+  QRIS
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum OrderStatus {
+  DIKEMAS
+  DIKIRIM
+  DITERIMA
+}
